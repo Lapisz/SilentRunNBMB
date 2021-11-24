@@ -32,7 +32,9 @@
 *.app
 
 #VS compiled stuff
-/Release
-/Debug
-/x64
-/x86
+Release/
+Debug/
+x64/
+x86/
+
+*.user
