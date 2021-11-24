@@ -1,0 +1,9 @@
+﻿  SilentRunNBMB.cpp
+C:\Users\user\source\repos\SilentRunNBMB\SilentRunNBMB\SilentRunNBMB.cpp(162,35): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\user\source\repos\SilentRunNBMB\SilentRunNBMB\SilentRunNBMB.cpp(191,45): warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+  Generating code
+  2 of 35 functions ( 5.7%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    0 functions had inline decision re-evaluated but remain unchanged
+  Finished generating code
+  SilentRunNBMB.vcxproj -> C:\Users\user\source\repos\SilentRunNBMB\x64\Release\SilentRunNBMB.exe
