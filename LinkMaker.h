@@ -22,7 +22,7 @@
 #include "objidl.h"
 #include "shlguid.h"
 
-HRESULT CreateLink(LPCWSTR lpszPathObj, LPCWSTR lpszArgs, LPCSTR lpszPathLink, LPCWSTR lpszDesc)
+HRESULT CreateLink(LPCWSTR lpszPathObj, LPCWSTR lpszStartInPath, LPCWSTR lpszArgs, LPCSTR lpszPathLink, LPCWSTR lpszDesc)
 {
     HRESULT hres = CoInitialize(NULL);
     IShellLink* psl = NULL;
@@ -36,6 +36,7 @@ HRESULT CreateLink(LPCWSTR lpszPathObj, LPCWSTR lpszArgs, LPCSTR lpszPathLink, L
 
         // Set the path to the shortcut target and add the description. 
         psl->SetPath(lpszPathObj);
+        psl->SetWorkingDirectory(lpszStartInPath);
         psl->SetArguments(lpszArgs);
         psl->SetDescription(lpszDesc);
 

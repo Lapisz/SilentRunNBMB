@@ -51,8 +51,10 @@ int main(int argc, char* argv[])
             //make string for the location of the shortcut
             char* shortcutPath = concat_charArr(systemDriveBuf, "\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\StartUp\\", fileName, ".lnk");
             LPWSTR args = charArr_to_LPWSTR("run");
+            char* startInPath_charPtr = reverse_splicer(path_charPtr, '\\', '\0');
+            LPWSTR startInPath = charArr_to_LPWSTR(startInPath_charPtr);
 
-            CreateLink(path, args, shortcutPath, L"dont touch!!! for qml app use only");
+            CreateLink(path, startInPath, args, shortcutPath, L"dont touch!!! for qml app use only");
         }
         else if (strcmp(argv[1], "help") == 0) {
             cout << "QMLaunch v" << VERSION << " by Lapisz - https://lapisz.net" << endl;
@@ -64,6 +66,10 @@ int main(int argc, char* argv[])
             cout << "...   run             - quietly runs runnable.bat" << endl;
         }
         else if (strcmp(argv[1], "run") == 0) {
+            //the runHiddenShellCmd is not executed directly because it doesnt work properly when ran from an existing cmd.exe window
+            ShellExecute(NULL, L"open", path, L"runForReal", NULL, SW_HIDE);
+        }
+        else if (strcmp(argv[1], "runForReal") == 0) {
             runHiddenShellCmd("runnable.bat");
         }
         else {
