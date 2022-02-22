@@ -157,7 +157,8 @@
     <ClCompile Include="SilentRunNBMB.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="LinkMaker.h" />
+    <ClInclude Include="ExternalUtils.h" />
+    <ClInclude Include="QMLUtils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

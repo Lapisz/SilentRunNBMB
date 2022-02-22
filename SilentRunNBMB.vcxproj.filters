@@ -20,7 +20,10 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="LinkMaker.h">
+    <ClInclude Include="QMLUtils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ExternalUtils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
