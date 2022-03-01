@@ -6,6 +6,18 @@ using namespace std;
 
 char* concat_charArr(const char* first, const char* second, const char* third = NULL, const char* fourth = NULL, const char* fifth = NULL);
 
+char* bool_to_charArr(bool input) {
+    char returnValue[6];
+    if (input) {
+        strncpy_s(returnValue, "true" , sizeof(returnValue));
+    }
+    else {
+        strncpy_s(returnValue, "false", sizeof(returnValue));
+    }
+
+    return returnValue;
+}
+
 //Adds char strings together, up to five of them
 char* concat_charArr(const char* first, const char* second, const char* third, const char* fourth, const char* fifth) {
     size_t totalLength = strlen(first) + strlen(second);

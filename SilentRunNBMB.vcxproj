@@ -157,6 +157,7 @@
     <ClCompile Include="SilentRunNBMB.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Configurator.h" />
     <ClInclude Include="ExternalUtils.h" />
     <ClInclude Include="QMLUtils.h" />
   </ItemGroup>

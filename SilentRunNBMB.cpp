@@ -5,11 +5,12 @@
 #include <windows.h>
 #include "ExternalUtils.h"
 #include "QMLUtils.h"
+#include "Configurator.h"
 #include <ctime>
 
 using namespace std;
 
-//==========functions==========
+//==========declarations==========
 int monitoringLoop();
 
 int runFile(const char* pathToFile, const char* args, bool hideWindow);
