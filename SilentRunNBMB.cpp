@@ -12,20 +12,22 @@ using namespace std;
 
 //==========declarations==========
 int monitoringLoop();
-
 int runFile(const char* pathToFile, const char* args, bool hideWindow);
 int runHiddenShellCmd(const char* command);
 //=============================
 
-//global vars
-const char* VERSION = "1.1";
-const wchar_t* STATIC_DESC = L"dont touch!!! for qml app use only";
+#define QML_VERSION "1.1" //char*
+#define QML_STATIC_DESC L"dont touch!!! for qml app use only" //wchar_t*
 
 int main(int argc, char* argv[])
 {   
     char* path_charPtr = get_current_exe_path();
     LPWSTR path = charArr_to_LPWSTR(path_charPtr);
     char* fileName = reverse_splicer(path_charPtr, '.', '\\');
+
+    //initialize config class and load config file contents
+    QMLConfig qmlc;
+    qmlc.config_routine();
 
     //commandline handler
     if (argc == 2) {
@@ -59,7 +61,7 @@ int main(int argc, char* argv[])
             remove(shortcutPath);
         }
         else if (strcmp(argv[1], "help") == 0) {
-            cout << "QMLaunch v" << VERSION << " by Lapisz - https://lapisz.net" << endl;
+            cout << "QMLaunch v" << QML_VERSION << " by Lapisz - https://lapisz.net" << endl;
             cout << endl;
             cout << fileName << " [args]" << endl;
             cout << "args:" << endl;
@@ -102,7 +104,7 @@ int main(int argc, char* argv[])
             wchar_t* description = new wchar_t[256];
             ResolveIt(NULL, shortcutPath, description, 256);
 
-            if (wcscmp(description, STATIC_DESC) == 0) {
+            if (wcscmp(description, QML_STATIC_DESC) == 0) {
                 HINSTANCE hI = ShellExecute(NULL, L"runas", path, L"delShortcutAlreadyHasAdmin", NULL, SW_HIDE);
                 check_hi_success(hI, true, "Disabled on startup", "Failed to remove startup shortcut. Try running as admin or manually deleting from ProgramData folder");
             }
