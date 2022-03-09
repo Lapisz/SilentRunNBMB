@@ -12,7 +12,22 @@ using namespace std;
 #define QML_AFK_GAME_LIMIT 20 //int
 
 struct CurrentConfig {
+    bool runOnce;
+    char executable[64];
+    char parameters[1024];
 
+    bool afkEnabled;
+    uint32_t afkTimeout;
+
+    bool gameModeEnabled;
+    uint32_t gameModeTimeout;
+    char gameProcesses[QML_AFK_GAME_LIMIT][64];
+
+    bool monitorEnabled;
+    char monitorType[16];
+    int* ipAddress;
+    int port;
+    bool remoteOperations;
 };
 
 class QMLConfig {
@@ -37,21 +52,21 @@ private:
 public:
     QMLConfig() {
         runOnce = false;
-        strncpy_s(executable, "nbminer.exe", sizeof(executable));
-        strncpy_s(parameters, "-a algo -o stratum+ssl://pool.net:port -u 0xaddress.worker -d 0 -i 100", sizeof(parameters));
+        strncpy_s(executable, "nbminer.exe", sizeof(executable)/sizeof(executable[0]));
+        strncpy_s(parameters, "-a algo -o stratum+ssl://pool.net:port -u 0xaddress.worker -d 0 -i 100", sizeof(parameters)/sizeof(parameters[0]));
 
         afkEnabled = true;
         afkTimeout = 60000;
 
         gameModeEnabled = true;
         gameModeTimeout = 1200000;
-        strncpy_s(gameProcesses[0], "osu!.exe", sizeof(gameProcesses[0]));
-        strncpy_s(gameProcesses[1], "VALORANT.exe", sizeof(gameProcesses[1]));
-        strncpy_s(gameProcesses[2], "csgo.exe", sizeof(gameProcesses[2]));
-        strncpy_s(gameProcesses[3], "javaw.exe", sizeof(gameProcesses[3]));
+        strncpy_s(gameProcesses[0], "osu!.exe", sizeof(gameProcesses[0])/sizeof(gameProcesses[0][0]));
+        strncpy_s(gameProcesses[1], "VALORANT.exe", sizeof(gameProcesses[1])/sizeof(gameProcesses[1][0]));
+        strncpy_s(gameProcesses[2], "csgo.exe", sizeof(gameProcesses[2])/sizeof(gameProcesses[2][0]));
+        strncpy_s(gameProcesses[3], "javaw.exe", sizeof(gameProcesses[3])/sizeof(gameProcesses[3][0]));
 
         monitorEnabled = false;
-        strncpy_s(monitorType, "MMM", sizeof(monitorType));
+        strncpy_s(monitorType, "MMM", sizeof(monitorType)/sizeof(monitorType[0]));
         ipAddress = new int[4];
         ipAddress[0] = 1;
         ipAddress[1] = 2;
@@ -137,8 +152,26 @@ public:
     }
 
     CurrentConfig get_data() {
-        CurrentConfig test; //temp
-        return test;
+        CurrentConfig data;
+
+        runOnce = data.runOnce;
+        char executable[64];
+        char parameters[1024];
+
+        bool afkEnabled;
+        uint32_t afkTimeout;
+
+        bool gameModeEnabled;
+        uint32_t gameModeTimeout;
+        char gameProcesses[QML_AFK_GAME_LIMIT][64];
+
+        bool monitorEnabled;
+        char monitorType[16];
+        int* ipAddress;
+        int port;
+        bool remoteOperations;
+
+        return data;
     }
 
     bool config_routine(bool testMode) {
@@ -179,8 +212,8 @@ public:
                     //execution_settings
                     if (config["execution_settings"]) {
                         runOnce = config["execution_settings"]["run_once"].as<bool>();
-                        strncpy_s(executable, const_cast<char*>(config["execution_settings"]["executable"].as<string>().c_str()), sizeof(executable));
-                        strncpy_s(parameters, const_cast<char*>(config["execution_settings"]["parameters"].as<string>().c_str()), sizeof(parameters));
+                        strncpy_s(executable, const_cast<char*>(config["execution_settings"]["executable"].as<string>().c_str()), sizeof(executable)/sizeof(executable[0]));
+                        strncpy_s(parameters, const_cast<char*>(config["execution_settings"]["parameters"].as<string>().c_str()), sizeof(parameters)/sizeof(parameters[0]));
                     }
                     else {
                         cout << "execution_settings collection missing from config, will assume default values" << endl;
@@ -206,7 +239,7 @@ public:
                                 for (size_t index = 0; (index < config["afk_settings"]["game_mode"]["game_list"].size()) && (index < QML_AFK_GAME_LIMIT); index++) {
                                     strncpy_s(gameProcesses[index], 
                                         const_cast<char*>(config["afk_settings"]["game_mode"]["game_list"][index].as<string>().c_str()), 
-                                        sizeof(gameProcesses[index]));
+                                        sizeof(gameProcesses[index])/sizeof(gameProcesses[index][0]));
                                     if ((index == QML_AFK_GAME_LIMIT - 1) && (gameModeEnabled || testMode)) {
                                         cout << "AFK game limit reached (" << QML_AFK_GAME_LIMIT << " games), last game added: \"" << gameProcesses[index] << "\"" << endl;
                                     }
@@ -227,17 +260,17 @@ public:
                     //monitor_settings
                     if (config["monitor_settings"]) {
                         monitorEnabled = config["monitor_settings"]["enabled"].as<bool>();
-                        strncpy_s(monitorType, const_cast<char*>(config["monitor_settings"]["type"].as<string>().c_str()), sizeof(monitorType));
+                        strncpy_s(monitorType, const_cast<char*>(config["monitor_settings"]["type"].as<string>().c_str()), sizeof(monitorType)/sizeof(monitorType[0]));
 
                         char ipRaw[16];
-                        strncpy_s(ipRaw, const_cast<char*>(config["monitor_settings"]["server_ip"].as<string>().c_str()), sizeof(ipRaw));
+                        strncpy_s(ipRaw, const_cast<char*>(config["monitor_settings"]["server_ip"].as<string>().c_str()), sizeof(ipRaw)/sizeof(ipRaw[0]));
                         int index = 0;
                         char processing[4][4];
                         char* remaining;
-                        strncpy_s(processing[index], strtok_s(ipRaw, ".", &remaining), sizeof(processing[index]));
+                        strncpy_s(processing[index], strtok_s(ipRaw, ".", &remaining), sizeof(processing[index])/sizeof(processing[index][0]));
                         while ((strcmp(remaining, "\0") != 0) && index < 3) {
                             index++;
-                            strncpy_s(processing[index], strtok_s(NULL, ".", &remaining), sizeof(processing[index]));
+                            strncpy_s(processing[index], strtok_s(NULL, ".", &remaining), sizeof(processing[index])/sizeof(processing[index][0]));
                         }
                         if (index < 3) {
                             if (monitorEnabled || testMode) {

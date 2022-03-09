@@ -195,8 +195,8 @@ int runFile(const char* pathToFile, const char* args, bool hideWindow) {
     }
 
     char buffer[256];
-    strncpy_s(buffer, pathToFile, sizeof(buffer));
-    strncat_s(buffer, args, sizeof(buffer));
+    strncpy_s(buffer, pathToFile, sizeof(buffer)/sizeof(buffer[0]));
+    strncat_s(buffer, args, sizeof(buffer)/sizeof(buffer[0]));
 
     size_t size = strlen(buffer) + 1;
     wchar_t* textName = new wchar_t[size];

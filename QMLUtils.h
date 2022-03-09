@@ -9,10 +9,10 @@ char* concat_charArr(const char* first, const char* second, const char* third = 
 char* bool_to_charArr(bool input) {
     char returnValue[6];
     if (input) {
-        strncpy_s(returnValue, "true" , sizeof(returnValue));
+        strncpy_s(returnValue, "true" , sizeof(returnValue)/sizeof(returnValue[0]));
     }
     else {
-        strncpy_s(returnValue, "false", sizeof(returnValue));
+        strncpy_s(returnValue, "false", sizeof(returnValue)/sizeof(returnValue[0]));
     }
 
     return returnValue;
