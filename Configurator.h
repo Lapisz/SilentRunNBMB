@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
 #include <fstream>
+#include <regex>
 #include "QMLUtils.h"
 
 #include "yaml-cpp/yaml.h"
@@ -8,6 +9,11 @@
 using namespace std;
 
 #define QML_CONFIG_VERSION 1 //int
+#define QML_AFK_GAME_LIMIT 20 //int
+
+struct CurrentConfig {
+
+};
 
 class QMLConfig {
 private:
@@ -20,7 +26,7 @@ private:
 
     bool gameModeEnabled;
     uint32_t gameModeTimeout;
-    char gameProcesses[20][64];
+    char gameProcesses[QML_AFK_GAME_LIMIT][64];
 
     bool monitorEnabled;
     char monitorType[16];
@@ -53,10 +59,6 @@ public:
         ipAddress[3] = 4;
         port = 8080;
         remoteOperations = false;
-    }
-
-    void set_field(bool alsoUpdateConfig = false) {
-
     }
 
     void write_config() {
@@ -100,7 +102,7 @@ public:
             << "        ### List of exe files that QMLaunch will detect running\n"
             << "        game_list:\n";
 
-        for (int i = 0; i < (sizeof(gameProcesses) / sizeof(gameProcesses[0])); i++) {
+        for (int i = 0; i < QML_AFK_GAME_LIMIT; i++) {
             if (!(strcmp(gameProcesses[i], "") == 0)) {
                 file << "        - \"" << gameProcesses[i] << "\"\n";
             }
@@ -115,6 +117,7 @@ public:
             << "    type: \"" << monitorType << "\"\n"
             << "    \n"
             << "    ### IP of the remote server\n"
+            << "    ### Format: \"integer.integer.integer.integer\" where integer is not negative and less than 256\n"
             << "    server_ip: \"" << ipAddress[0] << "." << ipAddress[1] << "." << ipAddress[2] << "." << ipAddress[3] << "\"\n"
             << "    \n"
             << "    ### Port of the remote server\n"
@@ -129,7 +132,16 @@ public:
         file.close();
     }
 
-    void config_routine() {
+    void set_data(CurrentConfig qmlct) {
+
+    }
+
+    CurrentConfig get_data() {
+        CurrentConfig test; //temp
+        return test;
+    }
+
+    bool config_routine(bool testMode) {
         //check if file exists
         ifstream ifile;
         ifile.open("config.yml");
@@ -141,20 +153,140 @@ public:
         }
         else {
             ifile.close();
+
             //load config into memory
-            bool needsRepair = false;
-            YAML::Node config = YAML::LoadFile("config.yml");
-            if (config["configversion"].as<int>() != 1) {
-                cout << "Config version mismatch, the file will be reset" << endl;
-                write_config();
+            YAML::Node config;
+            try {
+                config = YAML::LoadFile("config.yml");
+            }
+            catch (YAML::Exception &error) {
+                cout << "Critical error parsing configuration file: " << error.msg << " (line " << error.mark.line << ", column " << error.mark.column << ")" << endl;
+                cout << "Please fix syntax or run resetConfig" << endl;
+                return false;
+            }
+            
+            if (!config["configversion"]) { 
+                cout << "Config missing version field, please run resetConfig" << endl;
+                return false;
+            }
+            else if (config["configversion"].as<int>() != 1) {
+                cout << "Config version mismatch, please run resetConfig" << endl;
+                return false;
             }
             else {
-                //try catch
+                bool needsRepair = false;
+                try {
+                    //execution_settings
+                    if (config["execution_settings"]) {
+                        runOnce = config["execution_settings"]["run_once"].as<bool>();
+                        strncpy_s(executable, const_cast<char*>(config["execution_settings"]["executable"].as<string>().c_str()), sizeof(executable));
+                        strncpy_s(parameters, const_cast<char*>(config["execution_settings"]["parameters"].as<string>().c_str()), sizeof(parameters));
+                    }
+                    else {
+                        cout << "execution_settings collection missing from config, will assume default values" << endl;
+                    }
+                    
+                    //afk_settings
+                    if (config["afk_settings"]) {
+                        //general_afk
+                        if (config["afk_settings"]["general_afk"]) {
+                            afkEnabled = config["afk_settings"]["general_afk"]["enabled"].as<bool>();
+                            afkTimeout = config["afk_settings"]["general_afk"]["timeout"].as<uint32_t>();
+                        } else {
+                            cout << "general_afk collection missing from config, will assume default values" << endl;
+                        }
+
+                        //game_mode
+                        if (config["afk_settings"]["game_mode"]) {
+                            gameModeEnabled = config["afk_settings"]["game_mode"]["enabled"].as<bool>();
+                            gameModeTimeout = config["afk_settings"]["game_mode"]["timeout"].as<uint32_t>();
+
+                            //game_list
+                            if(config["afk_settings"]["game_mode"]["game_list"]){
+                                for (size_t index = 0; (index < config["afk_settings"]["game_mode"]["game_list"].size()) && (index < QML_AFK_GAME_LIMIT); index++) {
+                                    strncpy_s(gameProcesses[index], 
+                                        const_cast<char*>(config["afk_settings"]["game_mode"]["game_list"][index].as<string>().c_str()), 
+                                        sizeof(gameProcesses[index]));
+                                    if ((index == QML_AFK_GAME_LIMIT - 1) && (gameModeEnabled || testMode)) {
+                                        cout << "AFK game limit reached (" << QML_AFK_GAME_LIMIT << " games), last game added: \"" << gameProcesses[index] << "\"" << endl;
+                                    }
+                                }
+                            }
+                            else if (gameModeEnabled || testMode) {
+                                needsRepair = true;
+                                cout << "AFK game list missing from config, will use default games and write them to file" << endl;
+                            }
+
+                        } else {
+                            cout << "game_mode collection missing from config, will assume default values" << endl;
+                        }
+                    } else {
+                        cout << "afk_settings collection missing from config, will assume default values" << endl;
+                    }
+
+                    //monitor_settings
+                    if (config["monitor_settings"]) {
+                        monitorEnabled = config["monitor_settings"]["enabled"].as<bool>();
+                        strncpy_s(monitorType, const_cast<char*>(config["monitor_settings"]["type"].as<string>().c_str()), sizeof(monitorType));
+
+                        char ipRaw[16];
+                        strncpy_s(ipRaw, const_cast<char*>(config["monitor_settings"]["server_ip"].as<string>().c_str()), sizeof(ipRaw));
+                        int index = 0;
+                        char processing[4][4];
+                        char* remaining;
+                        strncpy_s(processing[index], strtok_s(ipRaw, ".", &remaining), sizeof(processing[index]));
+                        while ((strcmp(remaining, "\0") != 0) && index < 3) {
+                            index++;
+                            strncpy_s(processing[index], strtok_s(NULL, ".", &remaining), sizeof(processing[index]));
+                        }
+                        if (index < 3) {
+                            if (monitorEnabled || testMode) {
+                                cout << "Formatting error for remote server IP! Disabling remote statistics and resetting IP field to default" << endl;
+                                monitorEnabled = false;
+                                needsRepair = true;
+                            }
+                        }
+                        else {
+                            for (int i = 0; i < 4; i++) {
+                                ipAddress[i] = strtol(processing[i], NULL, 10);
+
+                                if (ipAddress[i] > 255) {
+                                    ipAddress[i] = 255;
+                                    if (monitorEnabled || testMode) {
+                                        cout << "IP Address section #" << i << " is too high, will set it to 255." << endl;
+                                        needsRepair = true;
+                                    }
+                                }
+                                else if (ipAddress[i] < 0) {
+                                    ipAddress[i] = 0;
+                                    if (monitorEnabled || testMode) {
+                                        cout << "IP Address section #" << i << " cannot be negative, will set it to 0." << endl;
+                                        needsRepair = true;
+                                    }
+                                }
+                            }
+                        }
+
+                        port = config["monitor_settings"]["port"].as<int>();
+                        remoteOperations = config["monitor_settings"]["enable_remote_operations"].as<bool>();
+                    } else {
+                        cout << "monitor_settings collection missing from config, will assume default values" << endl;
+                    }
+
+                }
+                catch (YAML::Exception &error) {
+                    cout << "Something went wrong while parsing the configuration file (" << error.msg << ")," << endl;
+                    cout << "will reset to default value for the field at line " << error.mark.line << ", column " << error.mark.column << endl;
+                    needsRepair = true;
+                }
+
+                if (needsRepair) {
+                    write_config();
+                }
+
             }
 
-            if (needsRepair) {
-
-            }
+            return true;
         }
     }
 

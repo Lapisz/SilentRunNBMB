@@ -25,9 +25,11 @@ int main(int argc, char* argv[])
     LPWSTR path = charArr_to_LPWSTR(path_charPtr);
     char* fileName = reverse_splicer(path_charPtr, '.', '\\');
 
-    //initialize config class and load config file contents
+    //initialize config class and load config file contents (move this to the run command line later)
     QMLConfig qmlc;
-    qmlc.config_routine();
+    if (!qmlc.config_routine(false)) {
+        return 0;
+    }
 
     //commandline handler
     if (argc == 2) {
@@ -67,9 +69,16 @@ int main(int argc, char* argv[])
             cout << "args:" << endl;
             cout << "...   disableOnStartup - disables running on startup (will request admin access)" << endl;
             cout << "...   enableOnStartup  - enables running on startup (will request admin access)" << endl;
-            cout << "...   help             - displays this screen" << endl;
+            //cout << "...   help             - displays this screen" << endl;
+            cout << "...   resetConfig      - resets configuration file to default values" << endl;
             cout << "...   run              - quietly runs runnable.bat or afk mining depending on config" << endl;
             cout << "...   stop             - stops the mining" << endl;
+            cout << "...   testConfig       - tests the configuration for errors (may reset the erroneous values to default)" << endl;
+        }
+        else if (strcmp(argv[1], "resetConfig") == 0) {
+            QMLConfig newQmlc;
+            newQmlc.write_config();
+            cout << "Configuration reset" << endl;
         }
         else if (strcmp(argv[1], "run") == 0) {
             if (/*conditional statement from YAML to be added*/true) {
@@ -85,6 +94,13 @@ int main(int argc, char* argv[])
             killProcessByName(concat_charArr(fileName, ".exe"));
             killProcessByName("nbminer.exe");
             cout << "Stopped" << endl;
+        }
+        else if (strcmp(argv[1], "testConfig") == 0) {
+            cout << "==========Begin testing==========" << endl;
+            QMLConfig qmlcForTesting;
+            qmlcForTesting.config_routine(true);
+            cout << "===========End testing===========" << endl;
+            cout << endl << "Warnings and errors will show between the two lines above" << endl;
         }
         else if (strcmp(argv[1], "runForReal") == 0) {
             runHiddenShellCmd("runnable.bat");
