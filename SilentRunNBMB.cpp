@@ -11,7 +11,7 @@
 using namespace std;
 
 //==========declarations==========
-int monitoringLoop();
+int monitoringLoop(QMLConfig configurator, CurrentConfig config);
 int runFile(const char* pathToFile, const char* args, bool hideWindow);
 int runHiddenShellCmd(const char* command);
 //=============================
@@ -24,13 +24,10 @@ int main(int argc, char* argv[])
     char* path_charPtr = get_current_exe_path();
     LPWSTR path = charArr_to_LPWSTR(path_charPtr);
     char* fileName = reverse_splicer(path_charPtr, '.', '\\');
-
-    //initialize config class and load config file contents (move this to the run command line later)
+    
+    //load config defaults
     QMLConfig qmlc;
-    if (!qmlc.config_routine(false)) {
-        return 0;
-    }
-
+    
     //commandline handler
     if (argc == 2) {
         if (strcmp(argv[1], "enableOnStartup") == 0) {
@@ -81,7 +78,14 @@ int main(int argc, char* argv[])
             cout << "Configuration reset" << endl;
         }
         else if (strcmp(argv[1], "run") == 0) {
-            if (/*conditional statement from YAML to be added*/true) {
+            //loads values from config
+            if (!qmlc.config_routine(false)) {
+                return 0;
+            }
+
+            CurrentConfig cc = qmlc.get_data();
+
+            if (cc.afkEnabled) {
                 ShellExecute(NULL, L"open", path, L"runMonitor", NULL, SW_HIDE);
             }
             else {
@@ -91,8 +95,15 @@ int main(int argc, char* argv[])
             cout << "Started" << endl;
         }
         else if (strcmp(argv[1], "stop") == 0) {
+            //loads values from config (see run argument code)
+            /**/if (!qmlc.config_routine(false)) {
+            /**/    return 0;
+            /**/}
+            //////////
+            CurrentConfig cc = qmlc.get_data();
+
             killProcessByName(concat_charArr(fileName, ".exe"));
-            killProcessByName("nbminer.exe");
+            killProcessByName(cc.executable);
             cout << "Stopped" << endl;
         }
         else if (strcmp(argv[1], "testConfig") == 0) {
@@ -103,10 +114,29 @@ int main(int argc, char* argv[])
             cout << endl << "Warnings and errors will show between the two lines above" << endl;
         }
         else if (strcmp(argv[1], "runForReal") == 0) {
-            runHiddenShellCmd("runnable.bat");
+            //loads values from config (see run argument code)
+            /**/if (!qmlc.config_routine(false)) {
+            /**/    return 0;
+            /**/}
+            //////////
+            CurrentConfig cc = qmlc.get_data();
+
+            char toRun[2048];
+            strncpy_s(toRun, cc.executable, sizeof(toRun) / sizeof(toRun[0]));
+            strncat_s(toRun, " ", 1);
+            strncat_s(toRun, cc.parameters, (sizeof(toRun) / sizeof(toRun[0])) - (sizeof(cc.executable) / sizeof(cc.executable[0])) - 1);
+
+            runHiddenShellCmd(toRun);
         }
         else if (strcmp(argv[1], "runMonitor") == 0) {
-            monitoringLoop();
+            //loads values from config (see run argument code)
+            /**/if (!qmlc.config_routine(false)) {
+            /**/    return 0;
+            /**/}
+            //////////
+            CurrentConfig cc = qmlc.get_data();
+            
+            monitoringLoop(qmlc, cc);
         }
         else if (strcmp(argv[1], "disableOnStartup") == 0) {
             //see genShortcutAlreadyHasAdmin////
@@ -137,7 +167,7 @@ int main(int argc, char* argv[])
 }
 
 //later integration with MMM and config file
-int monitoringLoop() {
+int monitoringLoop(QMLConfig configurator, CurrentConfig config) {
     int startTime = time(0);
     int secondsSinceStart = 0;
     bool running = true;
@@ -157,7 +187,7 @@ int monitoringLoop() {
         GetLastInputInfo(plii);
         uint32_t msSinceInput = GetTickCount() - plii->dwTime;
 
-        if (msSinceInput > 5000) {
+        if (msSinceInput > config.afkTimeout) {
             if (!miningOn) {
                 miningOn = true;
                 //Turning on mining
@@ -168,7 +198,7 @@ int monitoringLoop() {
             if (miningOn) {
                 miningOn = false;
                 //Turning off mining
-                killProcessByName("nbminer.exe");
+                killProcessByName(config.executable);
             }
         }
         

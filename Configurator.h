@@ -1,7 +1,6 @@
 #pragma once
 #include <iostream>
 #include <fstream>
-#include <regex>
 #include "QMLUtils.h"
 
 #include "yaml-cpp/yaml.h"
@@ -12,7 +11,6 @@ using namespace std;
 #define QML_AFK_GAME_LIMIT 20 //int
 
 struct CurrentConfig {
-    bool runOnce;
     char executable[64];
     char parameters[1024];
 
@@ -32,7 +30,6 @@ struct CurrentConfig {
 
 class QMLConfig {
 private:
-    bool runOnce;
     char executable[64];
     char parameters[1024];
 
@@ -51,7 +48,6 @@ private:
 
 public:
     QMLConfig() {
-        runOnce = false;
         strncpy_s(executable, "nbminer.exe", sizeof(executable)/sizeof(executable[0]));
         strncpy_s(parameters, "-a algo -o stratum+ssl://pool.net:port -u 0xaddress.worker -d 0 -i 100", sizeof(parameters)/sizeof(parameters[0]));
 
@@ -85,11 +81,6 @@ public:
 
         file << "### General settings when executing \"run\" command\n"
             << "execution_settings:\n"
-            << "    ### If true, \"run\" runs the program once.\n"
-            << "    ### It will bypass any AFK or status reporting features\n"
-            << "    ### regardless of their configuration settings.\n"
-            << "    run_once: " << bool_to_charArr(runOnce) << "\n"
-            << "    \n"
             << "    ### The file you want to run\n"
             << "    executable: \"" << executable << "\"\n"
             << "    \n"
@@ -148,28 +139,54 @@ public:
     }
 
     void set_data(CurrentConfig qmlct) {
+        strncpy_s(executable, qmlct.executable, sizeof(executable) / sizeof(executable[0]));
+        strncpy_s(parameters, qmlct.parameters, sizeof(parameters) / sizeof(parameters[0]));
 
+        afkEnabled = qmlct.afkEnabled;
+        afkTimeout = qmlct.afkTimeout;
+
+        gameModeEnabled = qmlct.gameModeEnabled;
+        gameModeTimeout = qmlct.gameModeTimeout;
+        for (int i = 0; i < QML_AFK_GAME_LIMIT; i++) {
+            strncpy_s(gameProcesses[i], qmlct.gameProcesses[i], sizeof(gameProcesses[i]) / sizeof(gameProcesses[i][0]));
+        }
+
+        monitorEnabled = qmlct.monitorEnabled;
+        strncpy_s(monitorType, qmlct.monitorType, sizeof(monitorType) / sizeof(monitorType[0]));
+        delete ipAddress;
+        ipAddress = new int[4];
+        ipAddress[0] = qmlct.ipAddress[0];
+        ipAddress[1] = qmlct.ipAddress[1];
+        ipAddress[2] = qmlct.ipAddress[2];
+        ipAddress[3] = qmlct.ipAddress[3];
+        port = qmlct.port;
+        remoteOperations = qmlct.remoteOperations;
     }
 
     CurrentConfig get_data() {
         CurrentConfig data;
 
-        runOnce = data.runOnce;
-        char executable[64];
-        char parameters[1024];
+        strncpy_s(data.executable, executable, sizeof(data.executable) / sizeof(data.executable[0]));
+        strncpy_s(data.parameters, parameters, sizeof(data.parameters) / sizeof(data.parameters[0]));
 
-        bool afkEnabled;
-        uint32_t afkTimeout;
+        data.afkEnabled = afkEnabled;
+        data.afkTimeout = afkTimeout;
 
-        bool gameModeEnabled;
-        uint32_t gameModeTimeout;
-        char gameProcesses[QML_AFK_GAME_LIMIT][64];
+        data.gameModeEnabled = gameModeEnabled;
+        data.gameModeTimeout = gameModeTimeout;
+        for (int i = 0; i < QML_AFK_GAME_LIMIT; i++) {
+            strncpy_s(data.gameProcesses[i], gameProcesses[i], sizeof(data.gameProcesses[i]) / sizeof(data.gameProcesses[i][0]));
+        }
 
-        bool monitorEnabled;
-        char monitorType[16];
-        int* ipAddress;
-        int port;
-        bool remoteOperations;
+        data.monitorEnabled = monitorEnabled;
+        strncpy_s(data.monitorType, monitorType, sizeof(data.monitorType) / sizeof(data.monitorType[0]));
+        data.ipAddress = new int[4];
+        data.ipAddress[0] = ipAddress[0];
+        data.ipAddress[1] = ipAddress[1];
+        data.ipAddress[2] = ipAddress[2];
+        data.ipAddress[3] = ipAddress[3];
+        data.port = port;
+        data.remoteOperations = remoteOperations;
 
         return data;
     }
@@ -211,7 +228,6 @@ public:
                 try {
                     //execution_settings
                     if (config["execution_settings"]) {
-                        runOnce = config["execution_settings"]["run_once"].as<bool>();
                         strncpy_s(executable, const_cast<char*>(config["execution_settings"]["executable"].as<string>().c_str()), sizeof(executable)/sizeof(executable[0]));
                         strncpy_s(parameters, const_cast<char*>(config["execution_settings"]["parameters"].as<string>().c_str()), sizeof(parameters)/sizeof(parameters[0]));
                     }
