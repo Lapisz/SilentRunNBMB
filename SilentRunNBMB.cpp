@@ -27,7 +27,7 @@ int main(int argc, char* argv[])
     
     //load config defaults
     QMLConfig qmlc;
-    
+
     //commandline handler
     if (argc == 2) {
         if (strcmp(argv[1], "enableOnStartup") == 0) {
@@ -82,10 +82,9 @@ int main(int argc, char* argv[])
             if (!qmlc.config_routine(false)) {
                 return 0;
             }
-
             CurrentConfig cc = qmlc.get_data();
 
-            if (cc.afkEnabled) {
+            if (cc.afkEnabled || cc.monitorEnabled) {
                 ShellExecute(NULL, L"open", path, L"runMonitor", NULL, SW_HIDE);
             }
             else {
@@ -102,9 +101,9 @@ int main(int argc, char* argv[])
             //////////
             CurrentConfig cc = qmlc.get_data();
 
-            killProcessByName(concat_charArr(fileName, ".exe"));
-            killProcessByName(cc.executable);
             cout << "Stopped" << endl;
+            killProcessByName(cc.executable);
+            killProcessByName(concat_charArr(fileName, ".exe"));
         }
         else if (strcmp(argv[1], "testConfig") == 0) {
             cout << "==========Begin testing==========" << endl;
@@ -121,6 +120,7 @@ int main(int argc, char* argv[])
             //////////
             CurrentConfig cc = qmlc.get_data();
 
+            //note to self: the way of specifying count (type size_t) in strncpy_s and strncat_s may not be optimal
             char toRun[2048];
             strncpy_s(toRun, cc.executable, sizeof(toRun) / sizeof(toRun[0]));
             strncat_s(toRun, " ", 1);
@@ -176,39 +176,71 @@ int monitoringLoop(QMLConfig configurator, CurrentConfig config) {
     char* path_charPtr = get_current_exe_path();
     LPWSTR path = charArr_to_LPWSTR(path_charPtr);
 
+    //initialize last input info variable
+    PLASTINPUTINFO plii = new LASTINPUTINFO();
+    plii->cbSize = sizeof(*plii);
+
     while (running) {
         secondsSinceStart = time(0) - startTime;
-        //
+        //this checks if monitoringLoop() was somehow called but afk and monitoring were both disabled
+        if (!config.afkEnabled && !config.monitorEnabled) {
+            //then if so, will exit monitoringLoop()
+            running = false;
+            break;
+        }
 
-        //define a struct with pointer and set parameter
-        PLASTINPUTINFO plii = new LASTINPUTINFO();
-        plii->cbSize = sizeof(*plii);
+        if (config.afkEnabled) {
+            //load the last input time
+            GetLastInputInfo(plii);
+            uint32_t msSinceInput = GetTickCount() - plii->dwTime;
 
-        GetLastInputInfo(plii);
-        uint32_t msSinceInput = GetTickCount() - plii->dwTime;
+            //check if a game process is running
+            bool gameRunning = false;
+            for (int i = 0; i < sizeof(config.gameProcesses) / sizeof(config.gameProcesses[0]); i++) {
+                if (strcmp(config.gameProcesses[i], "\0") != 0) {
+                    if (doesProcessExist(config.gameProcesses[i])) {
+                        gameRunning = true;
+                    }
+                }
+            }
 
-        if (msSinceInput > config.afkTimeout) {
-            if (!miningOn) {
-                miningOn = true;
-                //Turning on mining
-                ShellExecute(NULL, L"open", path, L"runForReal", NULL, SW_HIDE);
+            //game mode mining
+            if (config.gameModeEnabled && gameRunning && (msSinceInput > config.gameModeTimeout)) {
+                //if game mode enabled and a game is running
+                if (!miningOn) {
+                    miningOn = true;
+                    ShellExecute(NULL, L"open", path, L"runForReal", NULL, SW_HIDE);
+                }
+            }
+            //regular afk mining
+            else if ( ((config.gameModeEnabled && !gameRunning) || !config.gameModeEnabled) && msSinceInput > config.afkTimeout) {
+                //if game mode is disabled, or if game mode enabled and game isnt running
+                if (!miningOn) {
+                    miningOn = true;
+                    ShellExecute(NULL, L"open", path, L"runForReal", NULL, SW_HIDE);
+                }
+            }
+            //not mining
+            else {
+                //if NO criteria met, and/or not enough timeout
+                if (miningOn) {
+                    //if mining then turn it off
+                    miningOn = false;
+                    killProcessByName(config.executable);
+                }
             }
         }
-        else {
-            if (miningOn) {
-                miningOn = false;
-                //Turning off mining
-                killProcessByName(config.executable);
-            }
+
+        if (config.monitorEnabled) {
+            //future remote statistics here
         }
         
-        //
+        //clock cycle (every 1 second)
         Sleep(1000);
     }
 
     return 0;
 }
-
 
 //runs a file, optional hidden parameter
 int runFile(const char* pathToFile, const char* args, bool hideWindow) {
@@ -224,9 +256,10 @@ int runFile(const char* pathToFile, const char* args, bool hideWindow) {
         si.wShowWindow = SW_HIDE;
     }
 
+    //may want to add a space between pathToFile and args
     char buffer[256];
     strncpy_s(buffer, pathToFile, sizeof(buffer)/sizeof(buffer[0]));
-    strncat_s(buffer, args, sizeof(buffer)/sizeof(buffer[0]));
+    strncat_s(buffer, args, (sizeof(buffer) / sizeof(buffer[0])) - (sizeof(pathToFile) / sizeof(pathToFile[0])));
 
     size_t size = strlen(buffer) + 1;
     wchar_t* textName = new wchar_t[size];
