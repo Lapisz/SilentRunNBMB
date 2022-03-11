@@ -20,7 +20,7 @@ Mining on other peoples computers without their knowledge and/or consent is most
 
 ```run``` - runs an executable specified in ```config.yml``` with the parameters also specified there. Will do configuration check similar to testConfig
 
-```stop``` - kills any AFK monitoring process and the executable specified in ```config.yml```
+```stop``` - kills background QMLaunch process (if running) and the executable specified in ```config.yml```
 
 ```testConfig``` - will test ```config.yml``` for formatting or data type errors. Might automatically correct or reset them to default
 
