@@ -25,7 +25,8 @@ Mining on other peoples computers without their knowledge and/or consent is most
 ```testConfig``` - will test ```config.yml``` for formatting or data type errors. Might automatically correct or reset them to default
 
 
-##Configuration
+<h2>Configuration</h2>
+
 Configuration is done in the file ```config.yml```
 
 Default configuration and values:
