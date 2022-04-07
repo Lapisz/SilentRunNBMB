@@ -17,6 +17,9 @@ struct CurrentConfig {
     bool afkEnabled;
     uint32_t afkTimeout;
 
+    bool batteryModeEnabled;
+    int batteryMiningThreshold;
+
     bool gameModeEnabled;
     uint32_t gameModeTimeout;
     char gameProcesses[QML_AFK_GAME_LIMIT][64];
@@ -40,6 +43,9 @@ private:
     uint32_t gameModeTimeout;
     char gameProcesses[QML_AFK_GAME_LIMIT][64];
 
+    bool batteryModeEnabled;
+    int batteryMiningThreshold;
+
     bool monitorEnabled;
     char monitorType[16];
     int *ipAddress;
@@ -60,6 +66,9 @@ public:
         strncpy_s(gameProcesses[1], "VALORANT.exe", sizeof(gameProcesses[1])/sizeof(gameProcesses[1][0]));
         strncpy_s(gameProcesses[2], "csgo.exe", sizeof(gameProcesses[2])/sizeof(gameProcesses[2][0]));
         strncpy_s(gameProcesses[3], "javaw.exe", sizeof(gameProcesses[3])/sizeof(gameProcesses[3][0]));
+
+        batteryModeEnabled = true;
+        batteryMiningThreshold = 30;
 
         monitorEnabled = false;
         strncpy_s(monitorType, "MMM", sizeof(monitorType)/sizeof(monitorType[0]));
@@ -114,8 +123,19 @@ public:
             }
         }
 
-        file << "\n";
-        file << "### Settings for remote status reporting\n"
+        file << "    \n"
+            << "    ### If enabled, stops mining when on battery if its lower than a certain percent\n"
+            << "    ### If device is plugged into wall, will always mine regardless of battery percent\n"
+            << "    ### \n"
+            << "    ### To preserve longevity, it is highly recommended to place laptop in tent mode,\n"
+            << "    ### tune fan curve, and set max battery charge in OEM software to 65-75%\n"
+            << "    battery_mode:\n"
+            << "        enabled: " << batteryModeEnabled << "\n"
+            << "        \n"
+            << "        ### If battery is this percent or lower, stop mining (enter 0-100)\n"
+            << "        threshold: " << batteryMiningThreshold << "\n"
+            << "\n"
+            << "### Settings for remote status reporting\n"
             << "monitor_settings:\n"
             << "    enabled: " << bool_to_charArr(monitorEnabled) << "\n"
             << "    \n"
@@ -161,6 +181,9 @@ public:
         ipAddress[3] = qmlct.ipAddress[3];
         port = qmlct.port;
         remoteOperations = qmlct.remoteOperations;
+
+        batteryModeEnabled = qmlct.batteryModeEnabled;
+        batteryMiningThreshold = qmlct.batteryMiningThreshold;
     }
 
     CurrentConfig get_data() {
@@ -177,6 +200,9 @@ public:
         for (int i = 0; i < QML_AFK_GAME_LIMIT; i++) {
             strncpy_s(data.gameProcesses[i], gameProcesses[i], sizeof(data.gameProcesses[i]) / sizeof(data.gameProcesses[i][0]));
         }
+
+        data.batteryModeEnabled = batteryModeEnabled;
+        data.batteryMiningThreshold = batteryMiningThreshold;
 
         data.monitorEnabled = monitorEnabled;
         strncpy_s(data.monitorType, monitorType, sizeof(data.monitorType) / sizeof(data.monitorType[0]));
@@ -268,6 +294,15 @@ public:
 
                         } else {
                             cout << "game_mode collection missing from config, will assume default values" << endl;
+                        }
+
+                        //battery_mode
+                        if (config["afk_settings"]["battery_mode"]) {
+                            batteryModeEnabled = config["afk_settings"]["battery_mode"]["enabled"].as<bool>();
+                            batteryMiningThreshold = config["afk_settings"]["battery_mode"]["threshold"].as<int>();
+                        }
+                        else {
+                            cout << "battery_mode collection missing from config, will assume default values" << endl;
                         }
                     } else {
                         cout << "afk_settings collection missing from config, will assume default values" << endl;
