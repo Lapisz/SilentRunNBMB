@@ -84,6 +84,16 @@ int main(int argc, char* argv[])
             }
             CurrentConfig cc = qmlc.get_data();
 
+            //if already is running, exit this instance of the app
+            if (doesProcessExist(concat_charArr(fileName, ".exe")) > 1) {
+                cout << "QMLaunch is already running" << endl;
+                return 0;
+            }
+            else if (doesProcessExist(cc.executable)) {
+                cout << "The miner is already running" << endl;
+                return 0;
+            }
+
             if (cc.afkEnabled || cc.monitorEnabled) {
                 ShellExecute(NULL, L"open", path, L"runMonitor", NULL, SW_HIDE);
             }

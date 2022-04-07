@@ -191,13 +191,14 @@ void killProcessByName(const char* filename)
 }
 
 //Some help from https://stackoverflow.com/questions/865152/how-can-i-get-a-process-handle-by-its-name-in-c
-bool doesProcessExist(const char* filename) {
+//returns how many of the process
+int doesProcessExist(const char* filename) {
     PROCESSENTRY32 entry;
     entry.dwSize = sizeof(PROCESSENTRY32);
     HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, NULL);
 
     LPWSTR Lfilename = charArr_to_LPWSTR(filename);
-    bool returnValue = false;
+    int returnValue = 0;
 
     //loads first process in list of all processes (this is likely system)
     if (Process32First(snapshot, &entry) == TRUE) {
@@ -205,7 +206,7 @@ bool doesProcessExist(const char* filename) {
         while (Process32Next(snapshot, &entry) == TRUE) {
             if (wcscmp(entry.szExeFile, Lfilename) == 0) {
                 //yes the requested process exists
-                returnValue = true;
+                returnValue++;
             }
         }
     }
