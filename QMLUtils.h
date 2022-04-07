@@ -68,6 +68,9 @@ wstring concat_LPCWSTR(LPCWSTR first, LPCWSTR second, LPCWSTR third, LPCWSTR fou
 }
 
 //converts char string to LPWSTR
+//
+//****************WARNING:****************
+//use caution when placing this function in a loop. may lead to runaway memory leak since buffer is not cleared inside this function
 LPWSTR charArr_to_LPWSTR(const char* input) {
     size_t size = strlen(input) + 1;
     size_t outSize;
