@@ -13,6 +13,7 @@ using namespace std;
 struct CurrentConfig {
     char executable[64];
     char parameters[1024];
+    bool windowShown;
 
     bool afkEnabled;
     uint32_t afkTimeout;
@@ -35,6 +36,7 @@ class QMLConfig {
 private:
     char executable[64];
     char parameters[1024];
+    bool windowShown;
 
     bool afkEnabled;
     uint32_t afkTimeout;
@@ -56,6 +58,7 @@ public:
     QMLConfig() {
         strncpy_s(executable, "nbminer.exe", sizeof(executable)/sizeof(executable[0]));
         strncpy_s(parameters, "-a algo -o stratum+ssl://pool.net:port -u 0xaddress.worker -d 0 -i 100", sizeof(parameters)/sizeof(parameters[0]));
+        windowShown = false;
 
         afkEnabled = true;
         afkTimeout = 60000;
@@ -95,6 +98,9 @@ public:
             << "    \n"
             << "    ### Optional arguments for the file.\n"
             << "    parameters: \"" << parameters << "\"\n"
+            << "    \n"
+            << "    ### Whether to open the mining console or keep it hidden (default: false)\n"
+            << "    shown: " << bool_to_charArr(windowShown) << "\n"
             << "\n"
             << "### Settings for AFK mining\n"
             << "afk_settings:\n"
@@ -130,7 +136,7 @@ public:
             << "    ### To preserve longevity, it is highly recommended to place laptop in tent mode,\n"
             << "    ### tune fan curve, and set max battery charge in OEM software to 65-75%\n"
             << "    battery_mode:\n"
-            << "        enabled: " << batteryModeEnabled << "\n"
+            << "        enabled: " << bool_to_charArr(batteryModeEnabled) << "\n"
             << "        \n"
             << "        ### If battery is this percent or lower, stop mining (enter 0-100)\n"
             << "        threshold: " << batteryMiningThreshold << "\n"
@@ -161,6 +167,7 @@ public:
     void set_data(CurrentConfig qmlct) {
         strncpy_s(executable, qmlct.executable, sizeof(executable) / sizeof(executable[0]));
         strncpy_s(parameters, qmlct.parameters, sizeof(parameters) / sizeof(parameters[0]));
+        windowShown = qmlct.windowShown;
 
         afkEnabled = qmlct.afkEnabled;
         afkTimeout = qmlct.afkTimeout;
@@ -191,6 +198,7 @@ public:
 
         strncpy_s(data.executable, executable, sizeof(data.executable) / sizeof(data.executable[0]));
         strncpy_s(data.parameters, parameters, sizeof(data.parameters) / sizeof(data.parameters[0]));
+        data.windowShown = windowShown;
 
         data.afkEnabled = afkEnabled;
         data.afkTimeout = afkTimeout;
@@ -256,6 +264,7 @@ public:
                     if (config["execution_settings"]) {
                         strncpy_s(executable, const_cast<char*>(config["execution_settings"]["executable"].as<string>().c_str()), sizeof(executable)/sizeof(executable[0]));
                         strncpy_s(parameters, const_cast<char*>(config["execution_settings"]["parameters"].as<string>().c_str()), sizeof(parameters)/sizeof(parameters[0]));
+                        windowShown = config["execution_settings"]["shown"].as<bool>();
                     }
                     else {
                         cout << "execution_settings collection missing from config, will assume default values" << endl;

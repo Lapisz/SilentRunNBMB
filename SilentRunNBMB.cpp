@@ -13,7 +13,7 @@ using namespace std;
 //==========declarations==========
 int monitoringLoop(QMLConfig configurator, CurrentConfig config);
 int runFile(const char* pathToFile, const char* args, bool hideWindow);
-int runHiddenShellCmd(const char* command);
+int runShellCmd(const char* command, bool hidden);
 //=============================
 
 #define QML_VERSION "1.1" //char*
@@ -98,7 +98,7 @@ int main(int argc, char* argv[])
                 ShellExecute(NULL, L"open", path, L"runMonitor", NULL, SW_HIDE);
             }
             else {
-                //the runHiddenShellCmd is not executed directly because it doesnt work properly when ran from an existing cmd.exe window, simlilar thing with the above runMonitor
+                //the runShellCmd is not executed directly because it doesnt work properly when ran from an existing cmd.exe window, simlilar thing with the above runMonitor
                 ShellExecute(NULL, L"open", path, L"runForReal", NULL, SW_HIDE);
             }
             cout << "Started" << endl;
@@ -136,7 +136,7 @@ int main(int argc, char* argv[])
             strncat_s(toRun, " ", 1);
             strncat_s(toRun, cc.parameters, (sizeof(toRun) / sizeof(toRun[0])) - (sizeof(cc.executable) / sizeof(cc.executable[0])) - 1);
 
-            runHiddenShellCmd(toRun);
+            runShellCmd(toRun, !cc.windowShown);
         }
         else if (strcmp(argv[1], "runMonitor") == 0) {
             //loads values from config (see run argument code)
@@ -215,19 +215,19 @@ int monitoringLoop(QMLConfig configurator, CurrentConfig config) {
             }
 
             //game mode mining
-            if (config.gameModeEnabled && gameRunning && (msSinceInput > config.gameModeTimeout)) {
+            if (config.gameModeEnabled && gameRunning && (msSinceInput >= config.gameModeTimeout)) {
                 //if game mode enabled and a game is running
                 if (!miningOn) {
                     miningOn = true;
-                    ShellExecute(NULL, L"open", path, L"runForReal", NULL, SW_HIDE);
+                    ShellExecute(NULL, L"open", path, L"runForReal", NULL, config.windowShown);
                 }
             }
             //regular afk mining
-            else if ( ((config.gameModeEnabled && !gameRunning) || !config.gameModeEnabled) && msSinceInput > config.afkTimeout) {
+            else if ( ((config.gameModeEnabled && !gameRunning) || !config.gameModeEnabled) && msSinceInput >= config.afkTimeout) {
                 //if game mode is disabled, or if game mode enabled and game isnt running
                 if (!miningOn) {
                     miningOn = true;
-                    ShellExecute(NULL, L"open", path, L"runForReal", NULL, SW_HIDE);
+                    ShellExecute(NULL, L"open", path, L"runForReal", NULL, config.windowShown);
                 }
             }
             //not mining
@@ -261,9 +261,11 @@ int runFile(const char* pathToFile, const char* args, bool hideWindow) {
     PROCESS_INFORMATION pi;
     ZeroMemory(&pi, sizeof(pi));
 
+    si.dwFlags = 0x00000001;
     if (hideWindow) {
-        si.dwFlags = 0x00000001;
         si.wShowWindow = SW_HIDE;
+    } else {
+        si.wShowWindow = SW_SHOWNORMAL;
     }
 
     //may want to add a space between pathToFile and args
@@ -286,9 +288,9 @@ int runFile(const char* pathToFile, const char* args, bool hideWindow) {
 }
 
 //runs hidden cmd.exe command
-int runHiddenShellCmd(const char* command) {
+int runShellCmd(const char* command, bool hidden) {
     const char* baseline = "C:\\Windows\\System32\\cmd.exe /C ";
-    return runFile(baseline, command, true);
+    return runFile(baseline, command, hidden);
 }
 
 //visual studio preadded comments
